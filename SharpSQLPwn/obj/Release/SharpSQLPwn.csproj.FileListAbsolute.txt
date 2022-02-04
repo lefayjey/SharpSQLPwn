@@ -6,3 +6,14 @@ D:\Temp\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.SuggestedBindingR
 D:\Temp\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.CoreCompileInputs.cache
 D:\Temp\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.exe
 D:\Temp\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.pdb
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.AssemblyReference.cache
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.SuggestedBindingRedirects.cache
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.CoreCompileInputs.cache
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.exe
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.pdb
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\bin\Release\SharpSQLPwn.exe.config
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\bin\Release\SharpSQLPwn.exe
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\bin\Release\SharpSQLPwn.pdb
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\bin\Release\CommandLine.dll
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\bin\Release\CommandLine.xml
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.CopyComplete
