@@ -5,3 +5,4 @@ C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.Suggeste
 C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.CoreCompileInputs.cache
 C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.exe
 C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.pdb
+C:\Cybersecurity\SharpSQLPwn\SharpSQLPwn\obj\Release\SharpSQLPwn.csproj.AssemblyReference.cache

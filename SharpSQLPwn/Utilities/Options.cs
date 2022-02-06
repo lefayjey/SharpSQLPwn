@@ -13,7 +13,7 @@ namespace SharpSQLPwn.Utilities
             public string modules = "R";
             public string impersonatedUser = "sa";
             public int cmdExecTechnique = 1;
-            public string cmdExecCommand = "whoami";
+            public string cmdExecCommand = null;
             public string attackerIP = null;
             public string linkedSQLServer = null;
             public bool interactive = false;
@@ -101,7 +101,7 @@ namespace SharpSQLPwn.Utilities
             Console.WriteLine(@"/____/_/ /_/\__,_/_/  / .___/____/\___\_\/_____/_/     |__/|__/_/ /_/ ");
             Console.WriteLine(@"                     /_/                                              ");
             Console.WriteLine(@"   https://github.com/lefayjey/SharpSQLPwn");
-            Console.WriteLine(@"   Version:  1.2");
+            Console.WriteLine(@"   Version:  1.2.1");
             Console.WriteLine(@"   Author:  lefayjey");
             Console.WriteLine();
         }
@@ -139,7 +139,7 @@ Arguments:
             1=xp_cmdshell
             2=sp_OACreate
             3=dll_assembly
-    /cmd         - Command to execute (default: whoami)
+    /cmd         - Command to execute
     /localIP     - Local IP of the attacker (used for responder or ntlmrelay or Inveigh)
     /linkedsql   - Target linked SQL Server Hostname or IP
     /interactive - Run Interactive version
