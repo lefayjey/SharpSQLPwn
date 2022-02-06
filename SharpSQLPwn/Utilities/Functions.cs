@@ -131,7 +131,7 @@ namespace SharpSQLPwn.Utilities
         public static void Impersonate(SqlConnection con, String impers_user)
         {
             Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Impersonation Tests <<<<<<<<<<<<<<<<<<<\n");
-            if (impers_user != "")
+            if (impers_user != null)
             {
                 Console.ForegroundColor = ConsoleColor.Blue;
                 Console.WriteLine("[*] Testing impersonation...");
@@ -161,7 +161,7 @@ namespace SharpSQLPwn.Utilities
         public static void CmdExec(SqlConnection con, int cmdExec_tech, string cmdExec_command)
         {
             Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running Command Execution Tests <<<<<<<<<<<<<<<<<<<\n");
-            if (cmdExec_command != "")
+            if (cmdExec_command != null)
             {
                 Console.ForegroundColor = ConsoleColor.Blue;
                 Console.Write("[*] Trying to execute commands");
@@ -259,7 +259,7 @@ namespace SharpSQLPwn.Utilities
         public static void UNCPathInjection(SqlConnection con, string smb_ip)
         {
             Console.WriteLine("\n>>>>>>>>>>>>>>>>>>>> Running UNC Path Injection Tests <<<<<<<<<<<<<<<<<<<\n");
-            if (smb_ip != "")
+            if (smb_ip != null)
             {
                 Console.ForegroundColor = ConsoleColor.Blue;
                 Console.WriteLine("[*] Trying get NET-NTLM Hash [NOTE: Ensure Responder/Impacket is listening]");
@@ -311,7 +311,7 @@ namespace SharpSQLPwn.Utilities
 
             }
 
-            if (smb_ip != "")
+            if (smb_ip != null)
             {
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine("[*] Trying to connect SMB share on " + smb_ip + " on remote SQL Server " + linkedSQLServer + " ...");
@@ -324,7 +324,7 @@ namespace SharpSQLPwn.Utilities
                 Console.ResetColor();
             }
 
-            if (cmdExeclinked != "")
+            if (cmdExeclinked != null)
             {
                 String cmd = EncodePs(cmdExeclinked);
 
