@@ -207,7 +207,7 @@ namespace SharpSQLPwn.Utilities
                     QuerySQL(con, create_oa, true);
 
                     Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine("[*] Cleaning up, running sp_OADestroy on created procedure, and disabling Ole Automation Procedures ...");
+                    Console.WriteLine("[*] Cleaning up, disabling Ole Automation Procedures ...");
                     Console.ResetColor();
                     String disable_ole_proc = "EXEC sp_configure 'Ole Automation Procedures', 0; RECONFIGURE; EXEC sp_configure 'show advanced options', 0; RECONFIGURE;";
                     QuerySQL(con, disable_ole_proc, true);
