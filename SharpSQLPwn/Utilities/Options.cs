@@ -126,7 +126,7 @@ namespace SharpSQLPwn.Utilities
             Console.WriteLine(@"/____/_/ /_/\__,_/_/  / .___/____/\___\_\/_____/_/     |__/|__/_/ /_/ ");
             Console.WriteLine(@"                     /_/                                              ");
             Console.WriteLine(@"   https://github.com/lefayjey/SharpSQLPwn");
-            Console.WriteLine(@"   Version:  1.3.0");
+            Console.WriteLine(@"   Version:  1.3.1");
             Console.WriteLine(@"   Author:  lefayjey");
             Console.WriteLine();
         }

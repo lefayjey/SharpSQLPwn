@@ -13,26 +13,9 @@ namespace SharpSQLPwn.Utilities
                 SqlDataReader reader = command.ExecuteReader();
                 if (output == true)
                 {
-                    int hyphenCount = 0;
-                    string columnName = "";
-                    // Print the column names
-                    for (int i = 0; i < reader.FieldCount; i++)
+                    while (reader.Read() == true)
                     {
-                        columnName = reader.GetName(i) + " | ";
-                        Console.Write(columnName);
-                        hyphenCount += columnName.Length;
-                    }
-                    Console.WriteLine("");
-                    Console.WriteLine(new String('-', hyphenCount));
-
-                    while (reader.Read())
-                    {
-                        // Print data
-                        for (int i = 0; i < reader.FieldCount; i++)
-                        {
-                            Console.Write(reader.GetValue(i) + " | ");
-                        }
-                        Console.WriteLine("");
+                        if (reader[0] != DBNull.Value) { Console.WriteLine("---> " + reader[0]); };
                     }
                 }
                 reader.Close();
@@ -46,7 +29,52 @@ namespace SharpSQLPwn.Utilities
                 Console.ResetColor();
                 return e;
             }
+        }
 
+        public static Exception CustomQuerySQL(SqlConnection con, String query)
+        {
+            try
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("[*] Running Custom Query: " + query);
+                Console.ResetColor();
+                
+                SqlCommand command = new SqlCommand(query, con);
+                SqlDataReader reader = command.ExecuteReader();
+
+                int hyphenCount = 0;
+                string columnName = "";
+                // Print the column names
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    columnName = reader.GetName(i) + " | ";
+                    Console.Write(columnName);
+                    hyphenCount += columnName.Length;
+                }
+                Console.WriteLine("");
+                Console.WriteLine(new String('-', hyphenCount));
+
+                while (reader.Read())
+                {
+                    // Print data
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        Console.Write(reader.GetValue(i) + " | ");
+                    }
+                    Console.WriteLine("");
+                }
+
+                reader.Close();
+                return null;
+            }
+
+            catch (Exception e)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[-] Error: " + e.Message);
+                Console.ResetColor();
+                return e;
+            }
         }
 
         public static Exception CheckRole(SqlConnection con, String rolename)
@@ -391,7 +419,7 @@ namespace SharpSQLPwn.Utilities
                 Console.ResetColor();
                 String customquery = "SELECT * FROM openquery(\"" + linkedSQLServer + "\", '" + query + "')";
 
-                QuerySQL(con, customquery, true);
+                CustomQuerySQL(con, customquery);
             }
 
             if (cmdExeclinked != null)
