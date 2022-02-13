@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\Authentication.cs" />
     <Compile Include="Utilities\Functions.cs" />
     <Compile Include="Utilities\Options.cs" />
   </ItemGroup>

